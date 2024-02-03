@@ -1,7 +1,6 @@
 import styles from './Field.module.scss';
 import { useField } from '@/components/Field/useField.ts';
 import { Cell } from '@/components/Cell/Cell.tsx';
-import { omit } from 'lodash-es';
 
 declare module 'react' {
     interface CSSProperties {
@@ -12,7 +11,7 @@ declare module 'react' {
 export const CELLS_PER_ROW = 4;
 
 export const Field = () => {
-    const { idCellMap, onMoveLeft } = useField(CELLS_PER_ROW);
+    const { idCellMap } = useField(CELLS_PER_ROW);
     return (
         <div
             className={styles.container}
@@ -27,12 +26,17 @@ export const Field = () => {
                 />
             ))}
 
-            {Object.values(idCellMap).map((cell) => (
-                <Cell
-                    key={cell.id}
-                    {...omit(cell, 'id')}
-                />
-            ))}
+            {Object.keys(idCellMap)
+                .sort()
+                .map((id) => {
+                    const cell = idCellMap[id];
+                    return (
+                        <Cell
+                            key={id}
+                            {...cell}
+                        />
+                    );
+                })}
         </div>
     );
 };

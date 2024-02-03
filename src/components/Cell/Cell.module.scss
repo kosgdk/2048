@@ -1,8 +1,9 @@
 .container {
-    --animation-duration: 0.3s;
+    --animation-duration: 0.2s;
     position: absolute;
     top: calc(var(--row) * var(--cell-size) + (var(--row) + 1) * var(--gap));
     left: calc(var(--col) * var(--cell-size) + (var(--col) + 1) * var(--gap));
+    z-index: 1;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -11,12 +12,42 @@
     font-weight: bold;
     font-size: 24px;
     border-radius: var(--cell-border-radius);
-    transition: top var(--animation-duration), left var(--animation-duration);
+    transition: top var(--animation-duration) linear, left var(--animation-duration) linear,
+        background-color 0s linear var(--animation-duration);
+    &:not(.hidden, .merged) {
+        animation: appear var(--animation-duration);
+    }
 }
 
 .hidden {
-    opacity: 0;
-    transition: opacity var(--animation-duration);
+    z-index: 0;
+}
+
+.merged {
+    animation: pop var(--animation-duration) calc(var(--animation-duration) / 2) both;
+}
+
+@keyframes appear {
+    0% {
+        opacity: 0;
+        scale: 0;
+    }
+    100% {
+        opacity: 1;
+        scale: 1;
+    }
+}
+
+@keyframes pop {
+    0% {
+        scale: 0;
+    }
+    50% {
+        scale: 1.2;
+    }
+    100% {
+        scale: 1;
+    }
 }
 
 $value-to-background-color-map: (
@@ -81,6 +112,6 @@ $value-to-background-color-map: (
     .cell-#{$value} {
         color: nth($rules, 2);
         font-size: nth($rules, 3);
-        background: nth($rules, 1);
+        background-color: nth($rules, 1);
     }
 }

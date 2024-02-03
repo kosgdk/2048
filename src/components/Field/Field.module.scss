@@ -1,6 +1,6 @@
 .container {
     --cell-size: 100px;
-    --cell-border-radius: 2px;
+    --cell-border-radius: 4px;
     --gap: 10px;
     --field-size: calc(var(--cell-size) * var(--cells-per-row) + var(--gap) * (var(--cells-per-row) - 1));
     position: relative;
