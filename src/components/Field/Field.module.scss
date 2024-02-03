@@ -1,0 +1,23 @@
+.container {
+    --cell-size: 100px;
+    --cell-border-radius: 2px;
+    --gap: 10px;
+    --field-size: calc(var(--cell-size) * var(--cells-per-row) + var(--gap) * (var(--cells-per-row) - 1));
+    position: relative;
+    display: grid;
+    grid-template-rows: repeat(var(--cells-per-row), var(--cell-size));
+    grid-template-columns: repeat(var(--cells-per-row), var(--cell-size));
+    gap: var(--gap);
+    width: var(--field-size);
+    height: var(--field-size);
+    padding: var(--gap);
+    background: #bbada0;
+    border-radius: calc(var(--cell-border-radius) + 4px);
+}
+
+.empty-cell {
+    width: var(--cell-size);
+    height: var(--cell-size);
+    background: rgba(238, 228, 218, 0.35);
+    border-radius: var(--cell-border-radius);
+}

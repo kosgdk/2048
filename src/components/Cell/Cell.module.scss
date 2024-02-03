@@ -1,0 +1,86 @@
+.container {
+    --animation-duration: 0.3s;
+    position: absolute;
+    top: calc(var(--row) * var(--cell-size) + (var(--row) + 1) * var(--gap));
+    left: calc(var(--col) * var(--cell-size) + (var(--col) + 1) * var(--gap));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: var(--cell-size);
+    height: var(--cell-size);
+    font-weight: bold;
+    font-size: 24px;
+    border-radius: var(--cell-border-radius);
+    transition: top var(--animation-duration), left var(--animation-duration);
+}
+
+.hidden {
+    opacity: 0;
+    transition: opacity var(--animation-duration);
+}
+
+$value-to-background-color-map: (
+    2: (
+        #eee4da,
+        #776e65,
+        48px
+    ),
+    4: (
+        #ede0c8,
+        #776e65,
+        48px
+    ),
+    8: (
+        #f2b179,
+        #f9f6f2,
+        48px
+    ),
+    16: (
+        #f59563,
+        #f9f6f2,
+        48px
+    ),
+    32: (
+        #f67c5f,
+        #f9f6f2,
+        48px
+    ),
+    64: (
+        #f65e3b,
+        #f9f6f2,
+        48px
+    ),
+    128: (
+        #edcf72,
+        #f9f6f2,
+        32px
+    ),
+    256: (
+        #edcc61,
+        #f9f6f2,
+        32px
+    ),
+    512: (
+        #edc850,
+        #f9f6f2,
+        32px
+    ),
+    1024: (
+        #edc53f,
+        #f9f6f2,
+        24px
+    ),
+    2048: (
+        #edc22e,
+        #f9f6f2,
+        24px
+    )
+);
+
+@each $value, $rules in $value-to-background-color-map {
+    .cell-#{$value} {
+        color: nth($rules, 2);
+        font-size: nth($rules, 3);
+        background: nth($rules, 1);
+    }
+}

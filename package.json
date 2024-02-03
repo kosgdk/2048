@@ -17,6 +17,7 @@
         "tsc": "tsc"
     },
     "dependencies": {
+        "@react-hookz/web": "^24.0.2",
         "clsx": "2.1.0",
         "lodash-es": "4.17.21",
         "react": "18.2.0",
