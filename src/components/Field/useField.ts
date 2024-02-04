@@ -34,7 +34,7 @@ const KEY_DOWN = 'ArrowDown';
 const arrowKeysSet = new Set([KEY_LEFT, KEY_RIGHT, KEY_UP, KEY_DOWN]);
 
 //todo: move inside hook?
-let id = 5;
+let id = 17;
 const getNewId = () => id++;
 
 // todo: block moves until animation is finished
@@ -43,7 +43,19 @@ export const useField = (fieldSize: number) => {
         1: { id: 1, row: 0, column: 0, value: 2, visible: true, merged: false },
         2: { id: 2, row: 0, column: 1, value: 2, visible: true, merged: false },
         3: { id: 3, row: 0, column: 2, value: 2, visible: true, merged: false },
-        4: { id: 4, row: 0, column: 3, value: 2, visible: true, merged: false }
+        4: { id: 4, row: 0, column: 3, value: 2, visible: true, merged: false },
+        5: { id: 5, row: 1, column: 0, value: 2, visible: true, merged: false },
+        6: { id: 6, row: 1, column: 1, value: 2, visible: true, merged: false },
+        7: { id: 7, row: 1, column: 2, value: 2, visible: true, merged: false },
+        8: { id: 8, row: 1, column: 3, value: 2, visible: true, merged: false },
+        9: { id: 9, row: 2, column: 0, value: 2, visible: true, merged: false },
+        10: { id: 10, row: 2, column: 1, value: 2, visible: true, merged: false },
+        11: { id: 11, row: 2, column: 2, value: 2, visible: true, merged: false },
+        12: { id: 12, row: 2, column: 3, value: 2, visible: true, merged: false },
+        13: { id: 13, row: 3, column: 0, value: 2, visible: true, merged: false },
+        14: { id: 14, row: 3, column: 1, value: 2, visible: true, merged: false },
+        15: { id: 15, row: 3, column: 2, value: 2, visible: true, merged: false },
+        16: { id: 16, row: 3, column: 3, value: 2, visible: true, merged: false }
     });
 
     useKeyboardEvent(
@@ -59,7 +71,7 @@ export const useField = (fieldSize: number) => {
             let newCellMap: CellDefinitionMap;
             switch (event.key) {
                 case KEY_LEFT:
-                    newCellMap = onMoveHorizontalLeft(field, false);
+                    newCellMap = onMoveHorizontal(field, false);
                     break;
                 case KEY_RIGHT:
                     newCellMap = onMoveHorizontal(field, true);
@@ -112,48 +124,14 @@ const prepareFieldForMove = (cellMap: CellDefinitionMap): CellDefinitionMap =>
         .keyBy((cell) => cell.id)
         .value();
 
-// const onMoveHorizontal = (field: Field, isForward: boolean): CellDefinitionMap => {
-//     const effectiveField = makeEmptyField(field.length);
-//     for (let row = 0; row < field.length; row++) {
-//         for (let column = 0; column < field.length; column++) {
-//             const cell = field[row][column];
-//             if (cell) {
-//                 const newCell = getNewDefinition(effectiveField[row], cell, isForward);
-//                 effectiveField[row][newCell.visibleCell.column] = newCell;
-//             }
-//         }
-//     }
-//     return fieldToCellMap(effectiveField);
-// };
-
-const onMoveHorizontalLeft = (field: Field, isForward: boolean): CellDefinitionMap => {
-    const effectiveField = field.reduce((resultField, row, rowIndex) => {
-        const reduceFn = reduce;
-        const reducedRow = reduceFn(
-            row,
-            (resultRow, cell) => {
-                if (cell) {
-                    const newCell = getNewDefinitionLeft(resultRow, cell, isForward);
-                    resultRow[newCell.visibleCell.column] = newCell;
-                }
-                return resultRow;
-            },
-            makeEmptyFieldRow(field.length)
-        );
-        resultField[rowIndex] = reducedRow;
-        return resultField;
-    }, makeEmptyField(field.length));
-    return fieldToCellMap(effectiveField);
-};
-
 const onMoveHorizontal = (field: Field, isForward: boolean): CellDefinitionMap => {
     const effectiveField = field.reduce((resultField, row, rowIndex) => {
-        const reduceFn = reduceRight;
+        const reduceFn = isForward ? reduceRight : reduce;
         const reducedRow = reduceFn(
             row,
             (resultRow, cell) => {
                 if (cell) {
-                    const newCell = getNewDefinition(resultRow, cell, isForward);
+                    const newCell = getNewDefinition(resultRow, cell, true, isForward);
                     resultRow[newCell.visibleCell.column] = newCell;
                 }
                 return resultRow;
@@ -167,31 +145,56 @@ const onMoveHorizontal = (field: Field, isForward: boolean): CellDefinitionMap =
     return fieldToCellMap(effectiveField);
 };
 
+// todo: rewrite in functional way
 const onMoveVertical = (field: Field, isForward: boolean): CellDefinitionMap => {
     const effectiveField = makeEmptyField(field.length);
     for (let column = 0; column < field.length; column++) {
-        for (let row = 0; row < field.length; row++) {
-            const cell = field[row][column];
-            if (cell) {
-                const newCell = getNewDefinition(
-                    effectiveField.map((row) => row[column]),
-                    cell,
-                    isForward
-                );
-                effectiveField[newCell.visibleCell.row][column] = newCell;
+        if (isForward) {
+            for (let row = field.length - 1; row >= 0; row--) {
+                const cell = field[row][column];
+                if (cell) {
+                    const newCell = getNewDefinition(
+                        effectiveField.map((row) => row[column]),
+                        cell,
+                        false,
+                        isForward
+                    );
+                    effectiveField[newCell.visibleCell.row][column] = newCell;
+                }
+            }
+        } else {
+            for (let row = 0; row < field.length; row++) {
+                const cell = field[row][column];
+                if (cell) {
+                    const newCell = getNewDefinition(
+                        effectiveField.map((row) => row[column]),
+                        cell,
+                        false,
+                        isForward
+                    );
+                    effectiveField[newCell.visibleCell.row][column] = newCell;
+                }
             }
         }
     }
     return fieldToCellMap(effectiveField);
 };
 
-const getNewDefinition = (effectiveFieldRow: FieldRow, cell: FieldCell, isForward: boolean): FieldCell => {
-    const reduceFn = reduce;
-    const effectiveRowSegment = effectiveFieldRow.slice(cell.visibleCell.column + 1);
+const getNewDefinition = (
+    effectiveFieldRow: FieldRow,
+    cell: FieldCell,
+    isHorizontal: boolean,
+    isForward: boolean
+): FieldCell => {
+    const reduceFn = isForward ? reduce : reduceRight;
+    const indexFieldName = isHorizontal ? 'column' : 'row';
+    const effectiveRowSegment = isForward
+        ? effectiveFieldRow.slice(cell.visibleCell[indexFieldName] + 1)
+        : effectiveFieldRow.slice(0, cell.visibleCell[indexFieldName]);
     return reduceFn(
         effectiveRowSegment,
         (effectiveCell, nextCell, index) => {
-            const nextCellIndex = effectiveFieldRow.length - (effectiveRowSegment.length - index);
+            const nextCellIndex = isForward ? effectiveFieldRow.length - (effectiveRowSegment.length - index) : index;
             console.log(
                 'getNewDefinition',
                 effectiveCell,
@@ -204,16 +207,16 @@ const getNewDefinition = (effectiveFieldRow: FieldRow, cell: FieldCell, isForwar
                 return {
                     visibleCell: {
                         ...effectiveCell.visibleCell,
-                        column: nextCellIndex
+                        [indexFieldName]: nextCellIndex
                     },
-                    hiddenCells: effectiveCell.hiddenCells.map((cell) => ({ ...cell, column: nextCellIndex }))
+                    hiddenCells: effectiveCell.hiddenCells.map((cell) => ({ ...cell, [indexFieldName]: nextCellIndex }))
                 };
             } else if (!nextCell.visibleCell.merged && nextCell.visibleCell.value === effectiveCell.visibleCell.value) {
                 return {
                     visibleCell: {
                         ...effectiveCell.visibleCell,
                         id: getNewId(),
-                        column: nextCellIndex,
+                        [indexFieldName]: nextCellIndex,
                         value: effectiveCell.visibleCell.value * 2,
                         merged: true
                     },
@@ -221,46 +224,7 @@ const getNewDefinition = (effectiveFieldRow: FieldRow, cell: FieldCell, isForwar
                         nextCell.visibleCell,
                         {
                             ...effectiveCell.visibleCell,
-                            column: nextCellIndex
-                        }
-                    ]
-                };
-            }
-            return effectiveCell;
-        },
-        cloneDeep(cell)
-    );
-};
-
-const getNewDefinitionLeft = (effectiveFieldRow: FieldRow, cell: FieldCell, isForward: boolean): FieldCell => {
-    const reduceFn = reduceRight;
-    const effectiveRowSegment = effectiveFieldRow.slice(0, cell.visibleCell.column);
-    return reduceFn(
-        effectiveRowSegment,
-        (effectiveCell, nextCell, index) => {
-            const nextCellIndex = index;
-            if (!nextCell) {
-                return {
-                    visibleCell: {
-                        ...effectiveCell.visibleCell,
-                        column: nextCellIndex
-                    },
-                    hiddenCells: effectiveCell.hiddenCells.map((cell) => ({ ...cell, column: nextCellIndex }))
-                };
-            } else if (!nextCell.visibleCell.merged && nextCell.visibleCell.value === effectiveCell.visibleCell.value) {
-                return {
-                    visibleCell: {
-                        ...effectiveCell.visibleCell,
-                        id: getNewId(),
-                        column: nextCellIndex,
-                        value: effectiveCell.visibleCell.value * 2,
-                        merged: true
-                    },
-                    hiddenCells: [
-                        nextCell.visibleCell,
-                        {
-                            ...effectiveCell.visibleCell,
-                            column: nextCellIndex
+                            [indexFieldName]: nextCellIndex
                         }
                     ]
                 };
