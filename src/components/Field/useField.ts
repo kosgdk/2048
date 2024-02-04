@@ -139,7 +139,6 @@ const onMoveHorizontal = (field: Field, isForward: boolean): CellDefinitionMap =
             makeEmptyFieldRow(field.length)
         );
         resultField[rowIndex] = reducedRow;
-        rowIndex === 0 && console.log(reducedRow);
         return resultField;
     }, makeEmptyField(field.length));
     return fieldToCellMap(effectiveField);
@@ -195,14 +194,6 @@ const getNewDefinition = (
         effectiveRowSegment,
         (effectiveCell, nextCell, index) => {
             const nextCellIndex = isForward ? effectiveFieldRow.length - (effectiveRowSegment.length - index) : index;
-            console.log(
-                'getNewDefinition',
-                effectiveCell,
-                nextCell,
-                nextCellIndex,
-                effectiveFieldRow,
-                effectiveRowSegment
-            );
             if (!nextCell) {
                 return {
                     visibleCell: {

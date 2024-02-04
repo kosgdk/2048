@@ -14,7 +14,10 @@
     border-radius: var(--cell-border-radius);
     transition: top var(--animation-duration) linear, left var(--animation-duration) linear,
         background-color 0s linear var(--animation-duration);
-    &:not(.hidden, .merged) {
+}
+
+.new {
+    &:not(.merged) {
         animation: appear var(--animation-duration);
     }
 }
