@@ -4,14 +4,17 @@ import { chain, cloneDeep, keys, reduce, reduceRight } from 'lodash-es';
 
 type CellId = number;
 
-export type CellDefinition = {
-    id: CellId;
+type CellCoordinates = {
     row: number;
     column: number;
+};
+
+export type CellDefinition = {
+    id: CellId;
     value: number;
     visible: boolean;
     merged: boolean;
-};
+} & CellCoordinates;
 
 type FieldCell = {
     visibleCell: FieldCellDefinition;
@@ -39,24 +42,7 @@ const getNewId = () => id++;
 
 // todo: block moves until animation is finished
 export const useField = (fieldSize: number) => {
-    const [cellMap, setCellMap] = useState<CellDefinitionMap>({
-        1: { id: 1, row: 0, column: 0, value: 2, visible: true, merged: false },
-        2: { id: 2, row: 0, column: 1, value: 2, visible: true, merged: false },
-        3: { id: 3, row: 0, column: 2, value: 2, visible: true, merged: false },
-        4: { id: 4, row: 0, column: 3, value: 2, visible: true, merged: false },
-        5: { id: 5, row: 1, column: 0, value: 2, visible: true, merged: false },
-        6: { id: 6, row: 1, column: 1, value: 2, visible: true, merged: false },
-        7: { id: 7, row: 1, column: 2, value: 2, visible: true, merged: false },
-        8: { id: 8, row: 1, column: 3, value: 2, visible: true, merged: false },
-        9: { id: 9, row: 2, column: 0, value: 2, visible: true, merged: false },
-        10: { id: 10, row: 2, column: 1, value: 2, visible: true, merged: false },
-        11: { id: 11, row: 2, column: 2, value: 2, visible: true, merged: false },
-        12: { id: 12, row: 2, column: 3, value: 2, visible: true, merged: false },
-        13: { id: 13, row: 3, column: 0, value: 2, visible: true, merged: false },
-        14: { id: 14, row: 3, column: 1, value: 2, visible: true, merged: false },
-        15: { id: 15, row: 3, column: 2, value: 2, visible: true, merged: false },
-        16: { id: 16, row: 3, column: 3, value: 2, visible: true, merged: false }
-    });
+    const [cellMap, setCellMap] = useState<CellDefinitionMap>(makeInitialCellMap(fieldSize));
 
     useKeyboardEvent(
         true,
@@ -127,7 +113,7 @@ const prepareFieldForMove = (cellMap: CellDefinitionMap): CellDefinitionMap =>
 const onMoveHorizontal = (field: Field, isForward: boolean): CellDefinitionMap => {
     const effectiveField = field.reduce((resultField, row, rowIndex) => {
         const reduceFn = isForward ? reduceRight : reduce;
-        const reducedRow = reduceFn(
+        resultField[rowIndex] = reduceFn(
             row,
             (resultRow, cell) => {
                 if (cell) {
@@ -138,7 +124,6 @@ const onMoveHorizontal = (field: Field, isForward: boolean): CellDefinitionMap =
             },
             makeEmptyFieldRow(field.length)
         );
-        resultField[rowIndex] = reducedRow;
         return resultField;
     }, makeEmptyField(field.length));
     return fieldToCellMap(effectiveField);
@@ -147,32 +132,28 @@ const onMoveHorizontal = (field: Field, isForward: boolean): CellDefinitionMap =
 // todo: rewrite in functional way
 const onMoveVertical = (field: Field, isForward: boolean): CellDefinitionMap => {
     const effectiveField = makeEmptyField(field.length);
+
+    const processCell = (row: number, column: number) => {
+        const cell = field[row][column];
+        if (cell) {
+            const newCell = getNewDefinition(
+                effectiveField.map((row) => row[column]),
+                cell,
+                false,
+                isForward
+            );
+            effectiveField[newCell.visibleCell.row][column] = newCell;
+        }
+    };
+
     for (let column = 0; column < field.length; column++) {
         if (isForward) {
             for (let row = field.length - 1; row >= 0; row--) {
-                const cell = field[row][column];
-                if (cell) {
-                    const newCell = getNewDefinition(
-                        effectiveField.map((row) => row[column]),
-                        cell,
-                        false,
-                        isForward
-                    );
-                    effectiveField[newCell.visibleCell.row][column] = newCell;
-                }
+                processCell(row, column);
             }
         } else {
             for (let row = 0; row < field.length; row++) {
-                const cell = field[row][column];
-                if (cell) {
-                    const newCell = getNewDefinition(
-                        effectiveField.map((row) => row[column]),
-                        cell,
-                        false,
-                        isForward
-                    );
-                    effectiveField[newCell.visibleCell.row][column] = newCell;
-                }
+                processCell(row, column);
             }
         }
     }
@@ -185,11 +166,14 @@ const getNewDefinition = (
     isHorizontal: boolean,
     isForward: boolean
 ): FieldCell => {
-    const reduceFn = isForward ? reduce : reduceRight;
     const indexFieldName = isHorizontal ? 'column' : 'row';
+
     const effectiveRowSegment = isForward
         ? effectiveFieldRow.slice(cell.visibleCell[indexFieldName] + 1)
         : effectiveFieldRow.slice(0, cell.visibleCell[indexFieldName]);
+
+    const reduceFn = isForward ? reduce : reduceRight;
+
     return reduceFn(
         effectiveRowSegment,
         (effectiveCell, nextCell, index) => {
@@ -263,3 +247,33 @@ const makeEmptyField = (fieldSize: number): Field =>
     Array.from({ length: fieldSize }, () => makeEmptyFieldRow(fieldSize));
 
 const makeEmptyFieldRow = (fieldSize: number): FieldRow => Array.from({ length: fieldSize }, () => null);
+
+const getEmptyCoordinates = (cellMap: CellDefinitionMap, fieldSize: number): CellCoordinates[] =>
+    cellMapToField(cellMap, fieldSize).reduce((acc, row, rowIndex) => {
+        const emptyCellsInRow = row
+            .map((cell, columnIndex) => (cell ? null : { row: rowIndex, column: columnIndex }))
+            .filter(Boolean) as CellCoordinates[];
+        return [...acc, ...emptyCellsInRow];
+    }, [] as CellCoordinates[]);
+
+const makeNewCell = (cellMap: CellDefinitionMap, fieldSize: number): CellDefinition => {
+    const emptyCoordinates = getEmptyCoordinates(cellMap, fieldSize);
+    const cellCoordinates = getRandomElement(emptyCoordinates);
+    return {
+        id: getNewId(),
+        value: getNewCellValue(),
+        visible: true,
+        merged: false,
+        ...cellCoordinates
+    };
+};
+
+const getRandomElement = <T>(array: T[]): T => array[Math.floor(Math.random() * array.length)];
+
+const getNewCellValue = () => (Math.random() < 0.9 ? 2 : 4);
+
+const makeInitialCellMap = (fieldSize: number): CellDefinitionMap =>
+    Array.from({ length: 2 }).reduce((cellMap: CellDefinitionMap) => {
+        const cell = makeNewCell(cellMap, fieldSize);
+        return { ...cellMap, [cell.id]: cell };
+    }, {} as CellDefinitionMap);
