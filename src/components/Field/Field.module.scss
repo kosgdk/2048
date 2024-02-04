@@ -1,4 +1,4 @@
-.container {
+.field {
     --cell-size: 100px;
     --cell-border-radius: 4px;
     --gap: 10px;
@@ -10,6 +10,7 @@
     gap: var(--gap);
     width: var(--field-size);
     height: var(--field-size);
+    margin-bottom: 20px;
     padding: var(--gap);
     background: #bbada0;
     border-radius: calc(var(--cell-border-radius) + 4px);

@@ -1,6 +1,6 @@
-import { Dispatch, SetStateAction, useState } from 'react';
-import { useKeyboardEvent } from '@react-hookz/web';
-import { chain, cloneDeep, keys, reduce, reduceRight } from 'lodash-es';
+import { useCallback, useState } from 'react';
+import { useCounter, useKeyboardEvent } from '@react-hookz/web';
+import { chain, cloneDeep, isEqual, keys, reduce, reduceRight } from 'lodash-es';
 
 type CellId = number;
 
@@ -42,7 +42,21 @@ const getNewId = () => id++;
 
 // todo: block moves until animation is finished
 export const useField = (fieldSize: number) => {
-    const [cellMap, setCellMap] = useState<CellDefinitionMap>(makeInitialCellMap(fieldSize));
+    const [moveNumber, { inc: incrementMoveNumber }] = useCounter(0);
+    // const [cellMapHistory, setCellMapHistory] = useState<CellDefinitionMap[]>([makeInitialCellMap(fieldSize)]);
+    const [cellMapHistory, setCellMapHistory] = useState<CellDefinitionMap[]>([
+        {
+            1: { id: 1, value: 2, visible: true, merged: false, row: 0, column: 0 },
+            2: { id: 2, value: 4, visible: true, merged: false, row: 0, column: 1 },
+            3: { id: 3, value: 2, visible: true, merged: false, row: 0, column: 2 }
+        }
+    ]);
+
+    const cellMap = cellMapHistory[moveNumber];
+    const setCellMap = (newCellMap: CellDefinitionMap) => {
+        setCellMapHistory((prevCellMapHistory) => [...prevCellMapHistory.slice(0, moveNumber + 1), newCellMap]);
+        incrementMoveNumber();
+    };
 
     useKeyboardEvent(
         true,
@@ -71,18 +85,41 @@ export const useField = (fieldSize: number) => {
                 default:
                     return;
             }
-            updateCellMap(newCellMap, currentCellMap, setCellMap);
+
+            if (!haveEffectiveChanges(newCellMap, currentCellMap)) {
+                console.log('No changes');
+                return;
+            }
+
+            const newCell = makeNewCell(newCellMap, fieldSize);
+            const effectiveNewCellMap = { ...newCellMap, [newCell.id]: newCell };
+            updateCellMap(effectiveNewCellMap, currentCellMap, setCellMap);
         },
         []
     );
 
-    return { idCellMap: cellMap, onMoveLeft: onMoveHorizontal };
+    const onUndo = useCallback(() => {
+        incrementMoveNumber(-1);
+    }, [incrementMoveNumber]);
+
+    const canUndo = moveNumber > 0;
+
+    return { idCellMap: cellMap, onUndo, canUndo };
 };
+
+const haveEffectiveChanges = (newCellMap: CellDefinitionMap, prevCellMap: CellDefinitionMap): boolean => {
+    const newVisibleCells = new Set(getVisibleCells(newCellMap));
+    const prevVisibleCells = new Set(getVisibleCells(prevCellMap));
+    return !isEqual(newVisibleCells, prevVisibleCells);
+};
+
+const getVisibleCells = (cellMap: CellDefinitionMap): CellDefinition[] =>
+    Object.values(cellMap).filter((cell) => cell.visible);
 
 const updateCellMap = (
     newCellMap: CellDefinitionMap,
     prevCellMap: CellDefinitionMap,
-    updateFn: Dispatch<SetStateAction<CellDefinitionMap>>
+    updateFn: (newCellMap: CellDefinitionMap) => void
 ) => {
     const hiddenCells: CellDefinitionMap = chain(prevCellMap)
         .keys()
@@ -178,6 +215,7 @@ const getNewDefinition = (
         effectiveRowSegment,
         (effectiveCell, nextCell, index) => {
             const nextCellIndex = isForward ? effectiveFieldRow.length - (effectiveRowSegment.length - index) : index;
+            console.log('getNewDefinition', effectiveCell, nextCell, nextCellIndex);
             if (!nextCell) {
                 return {
                     visibleCell: {
@@ -186,7 +224,11 @@ const getNewDefinition = (
                     },
                     hiddenCells: effectiveCell.hiddenCells.map((cell) => ({ ...cell, [indexFieldName]: nextCellIndex }))
                 };
-            } else if (!nextCell.visibleCell.merged && nextCell.visibleCell.value === effectiveCell.visibleCell.value) {
+            } else if (
+                !nextCell.visibleCell.merged &&
+                !effectiveCell.visibleCell.merged &&
+                nextCell.visibleCell.value === effectiveCell.visibleCell.value
+            ) {
                 return {
                     visibleCell: {
                         ...effectiveCell.visibleCell,
