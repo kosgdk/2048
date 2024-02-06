@@ -3,9 +3,12 @@
     "private": true,
     "version": "0.0.1",
     "type": "module",
+    "homepage": "https://kosgdk.github.io/2048",
     "scripts": {
         "dev": "vite",
         "build": "vite build",
+        "predeploy": "npm run build",
+        "deploy": "gh-pages -d dist",
         "preview": "vite preview",
         "lint": "eslint . --fix && stylelint \"**/*.scss\" --fix && prettier . --write",
         "lint:check": "npm-run-all --sequential --continue-on-error eslint:check stylelint:check prettier:check check-test-structure",
