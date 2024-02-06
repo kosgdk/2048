@@ -42,7 +42,7 @@ export const Field = () => {
                     );
                 })}
 
-            {!isGameOver && (
+            {isGameOver && (
                 <div className={styles.gameOver}>
                     <div className={styles.gameOverHeader}>Game Over</div>
                     <div className={styles.gameOverDescription}>Click any key to start a new game</div>
