@@ -117,3 +117,11 @@ $value-to-background-color-map: (
         background-color: nth($rules, 1);
     }
 }
+
+@media (max-width: 768px) {
+    @each $value, $rules in $value-to-background-color-map {
+        .cell-#{$value} {
+            font-size: calc(nth($rules, 3) * 0.8 + (100vw * 0.02));
+        }
+    }
+}

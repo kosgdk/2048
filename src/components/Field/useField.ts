@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useCounter, useKeyboardEvent } from '@react-hookz/web';
 import { chain, cloneDeep, isEqual, keys, reduce, reduceRight } from 'lodash';
+import { useSwipeable } from 'react-swipeable';
 
 type CellId = string;
 
@@ -34,15 +35,26 @@ const KEY_RIGHT = 'ArrowRight';
 const KEY_UP = 'ArrowUp';
 const KEY_DOWN = 'ArrowDown';
 
-const arrowKeysSet = new Set([KEY_LEFT, KEY_RIGHT, KEY_UP, KEY_DOWN]);
+enum Direction {
+    LEFT,
+    RIGHT,
+    UP,
+    DOWN
+}
 
-//todo: move inside hook?
-const getNewId = () => crypto.randomUUID();
+const arrowKeysSet = new Set([KEY_LEFT, KEY_RIGHT, KEY_UP, KEY_DOWN]);
 
 export const useField = (fieldSize: number, animationDurationMs: number) => {
     const [moveInProgress, setMoveInProgress] = useState(false);
     const [moveNumber, { inc: incrementMoveNumber, reset: resetMoveNumber }] = useCounter(0);
-    const [cellMapHistory, setCellMapHistory] = useState<CellDefinitionMap[]>([makeInitialCellMap(fieldSize)]);
+    // const [cellMapHistory, setCellMapHistory] = useState<CellDefinitionMap[]>([makeInitialCellMap(fieldSize)]);
+    const [cellMapHistory, setCellMapHistory] = useState<CellDefinitionMap[]>([
+        {
+            1: { id: '1', value: 2, visible: true, merged: false, row: 0, column: 0 },
+            2: { id: '2', value: 2, visible: true, merged: false, row: 0, column: 1 },
+            3: { id: '3', value: 2048, visible: true, merged: false, row: 0, column: 2 }
+        }
+    ]);
 
     const cellMap = cellMapHistory[moveNumber];
     const setCellMap = (newCellMap: CellDefinitionMap) => {
@@ -52,58 +64,95 @@ export const useField = (fieldSize: number, animationDurationMs: number) => {
 
     const isGameOver = useMemo(() => !canMakeEffectiveMove(cellMap, fieldSize), [cellMap, fieldSize]);
 
+    const swipeHandlers = useSwipeable({
+        onSwipedLeft: () => {
+            onMove(Direction.LEFT);
+        },
+        onSwipedRight: () => {
+            onMove(Direction.RIGHT);
+        },
+        onSwipedUp: () => {
+            onMove(Direction.UP);
+        },
+        onSwipedDown: () => {
+            onMove(Direction.DOWN);
+        }
+    });
+
     useKeyboardEvent(
         true,
         (event) => {
-            if (isGameOver) {
-                onNewGame();
-            }
-
             if (event.ctrlKey && event.code === 'KeyZ' && canUndo) {
                 onUndo();
             }
 
-            if (!arrowKeysSet.has(event.code) || moveInProgress || isGameOver) {
+            if (!arrowKeysSet.has(event.code)) {
                 return;
             }
 
-            setMoveInProgress(true);
-
-            const currentCellMap = prepareFieldForMove(cellMap);
-            const field = cellMapToField(currentCellMap, fieldSize);
-
-            let newCellMap: CellDefinitionMap;
             switch (event.key) {
                 case KEY_LEFT:
-                    newCellMap = onMoveHorizontal(field, false);
+                    onMove(Direction.LEFT);
                     break;
                 case KEY_RIGHT:
-                    newCellMap = onMoveHorizontal(field, true);
+                    onMove(Direction.RIGHT);
                     break;
                 case KEY_UP:
-                    newCellMap = onMoveVertical(field, false);
+                    onMove(Direction.UP);
                     break;
                 case KEY_DOWN:
-                    newCellMap = onMoveVertical(field, true);
+                    onMove(Direction.DOWN);
                     break;
-                default:
-                    return;
             }
-
-            setTimeout(() => {
-                setMoveInProgress(false);
-            }, animationDurationMs);
-
-            if (!haveEffectiveChanges(newCellMap, currentCellMap)) {
-                return;
-            }
-
-            const newCell = makeNewCell(newCellMap, fieldSize);
-            const effectiveNewCellMap = { ...newCellMap, [newCell.id]: newCell };
-            updateCellMap(effectiveNewCellMap, currentCellMap, setCellMap);
         },
         []
     );
+
+    const onMove = (direction: Direction) => {
+        if (moveInProgress) {
+            return;
+        }
+
+        if (isGameOver) {
+            onNewGame();
+            return;
+        }
+
+        setMoveInProgress(true);
+
+        const currentCellMap = prepareFieldForMove(cellMap);
+        const field = cellMapToField(currentCellMap, fieldSize);
+
+        let newCellMap: CellDefinitionMap;
+        switch (direction) {
+            case Direction.LEFT:
+                newCellMap = onMoveHorizontal(field, false);
+                break;
+            case Direction.RIGHT:
+                newCellMap = onMoveHorizontal(field, true);
+                break;
+            case Direction.UP:
+                newCellMap = onMoveVertical(field, false);
+                break;
+            case Direction.DOWN:
+                newCellMap = onMoveVertical(field, true);
+                break;
+            default:
+                return;
+        }
+
+        setTimeout(() => {
+            setMoveInProgress(false);
+        }, animationDurationMs);
+
+        if (!haveEffectiveChanges(newCellMap, currentCellMap)) {
+            return;
+        }
+
+        const newCell = makeNewCell(newCellMap, fieldSize);
+        const effectiveNewCellMap = { ...newCellMap, [newCell.id]: newCell };
+        updateCellMap(effectiveNewCellMap, currentCellMap, setCellMap);
+    };
 
     const onUndo = () => {
         incrementMoveNumber(-1);
@@ -116,7 +165,7 @@ export const useField = (fieldSize: number, animationDurationMs: number) => {
 
     const canUndo = moveNumber > 0;
 
-    return { idCellMap: cellMap, isGameOver };
+    return { idCellMap: cellMap, isGameOver, onNewGame, swipeHandlers };
 };
 
 const haveEffectiveChanges = (newCellMap: CellDefinitionMap, prevCellMap: CellDefinitionMap): boolean => {
@@ -388,3 +437,5 @@ const makeInitialCellMap = (fieldSize: number): CellDefinitionMap =>
         const cell = makeNewCell(cellMap, fieldSize);
         return { ...cellMap, [cell.id]: cell };
     }, {} as CellDefinitionMap);
+
+const getNewId = () => crypto.randomUUID();

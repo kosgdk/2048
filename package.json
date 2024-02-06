@@ -20,12 +20,13 @@
         "tsc": "tsc"
     },
     "dependencies": {
-        "@react-hookz/web": "^24.0.2",
+        "@react-hookz/web": "24.0.2",
+        "@types/lodash": "4.14.202",
         "clsx": "2.1.0",
         "lodash": "4.17.21",
-        "lodash-es": "4.17.21",
         "react": "18.2.0",
-        "react-dom": "18.2.0"
+        "react-dom": "18.2.0",
+        "react-swipeable": "7.0.1"
     },
     "devDependencies": {
         "@babel/preset-env": "7.23.6",
@@ -37,7 +38,6 @@
         "@types/jest": "29.5.11",
         "@types/jest-expect-message": "1.1.0",
         "@types/jest-when": "3.5.5",
-        "@types/lodash-es": "4.17.8",
         "@types/node": "18.14.2",
         "@types/react": "18.0.28",
         "@types/react-dom": "18.0.11",
