@@ -14,6 +14,7 @@ const srcPath = resolve(__dirname, 'src');
 const testsPath = resolve(__dirname, 'tests');
 
 export default defineConfig({
+    base: '/2048/',
     plugins: [react(), mkcert(), pluginRewriteAll(), ViteCSSExportPlugin()],
     server: {
         port: 3000,
