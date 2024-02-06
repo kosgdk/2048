@@ -43,14 +43,7 @@ const getNewId = () => id++;
 // todo: block moves until animation is finished
 export const useField = (fieldSize: number) => {
     const [moveNumber, { inc: incrementMoveNumber }] = useCounter(0);
-    // const [cellMapHistory, setCellMapHistory] = useState<CellDefinitionMap[]>([makeInitialCellMap(fieldSize)]);
-    const [cellMapHistory, setCellMapHistory] = useState<CellDefinitionMap[]>([
-        {
-            1: { id: 1, value: 2, visible: true, merged: false, row: 0, column: 0 },
-            2: { id: 2, value: 4, visible: true, merged: false, row: 0, column: 1 },
-            3: { id: 3, value: 2, visible: true, merged: false, row: 0, column: 2 }
-        }
-    ]);
+    const [cellMapHistory, setCellMapHistory] = useState<CellDefinitionMap[]>([makeInitialCellMap(fieldSize)]);
 
     const cellMap = cellMapHistory[moveNumber];
     const setCellMap = (newCellMap: CellDefinitionMap) => {
@@ -179,6 +172,7 @@ const onMoveVertical = (field: Field, isForward: boolean): CellDefinitionMap => 
                 false,
                 isForward
             );
+            console.log(newCell);
             effectiveField[newCell.visibleCell.row][column] = newCell;
         }
     };
@@ -209,47 +203,76 @@ const getNewDefinition = (
         ? effectiveFieldRow.slice(cell.visibleCell[indexFieldName] + 1)
         : effectiveFieldRow.slice(0, cell.visibleCell[indexFieldName]);
 
-    const reduceFn = isForward ? reduce : reduceRight;
+    let effectiveCell = cloneDeep(cell);
 
-    return reduceFn(
-        effectiveRowSegment,
-        (effectiveCell, nextCell, index) => {
-            const nextCellIndex = isForward ? effectiveFieldRow.length - (effectiveRowSegment.length - index) : index;
-            console.log('getNewDefinition', effectiveCell, nextCell, nextCellIndex);
-            if (!nextCell) {
-                return {
-                    visibleCell: {
-                        ...effectiveCell.visibleCell,
+    const calculateDefinition = (
+        currentCell: FieldCell,
+        nextCell: FieldCell | null,
+        nextCellIndex: number
+    ): FieldCell | null => {
+        console.log('getNewDefinition', currentCell, nextCell, nextCellIndex);
+        if (!nextCell) {
+            return {
+                visibleCell: {
+                    ...currentCell.visibleCell,
+                    [indexFieldName]: nextCellIndex
+                },
+                hiddenCells: currentCell.hiddenCells.map((cell) => ({ ...cell, [indexFieldName]: nextCellIndex }))
+            };
+        } else if (
+            !nextCell.visibleCell.merged &&
+            !currentCell.visibleCell.merged &&
+            nextCell.visibleCell.value === currentCell.visibleCell.value
+        ) {
+            return {
+                visibleCell: {
+                    ...currentCell.visibleCell,
+                    id: getNewId(),
+                    [indexFieldName]: nextCellIndex,
+                    value: currentCell.visibleCell.value * 2,
+                    merged: true
+                },
+                hiddenCells: [
+                    nextCell.visibleCell,
+                    {
+                        ...currentCell.visibleCell,
                         [indexFieldName]: nextCellIndex
-                    },
-                    hiddenCells: effectiveCell.hiddenCells.map((cell) => ({ ...cell, [indexFieldName]: nextCellIndex }))
-                };
-            } else if (
-                !nextCell.visibleCell.merged &&
-                !effectiveCell.visibleCell.merged &&
-                nextCell.visibleCell.value === effectiveCell.visibleCell.value
-            ) {
-                return {
-                    visibleCell: {
-                        ...effectiveCell.visibleCell,
-                        id: getNewId(),
-                        [indexFieldName]: nextCellIndex,
-                        value: effectiveCell.visibleCell.value * 2,
-                        merged: true
-                    },
-                    hiddenCells: [
-                        nextCell.visibleCell,
-                        {
-                            ...effectiveCell.visibleCell,
-                            [indexFieldName]: nextCellIndex
-                        }
-                    ]
-                };
+                    }
+                ]
+            };
+        } else {
+            console.log('break');
+            return null;
+        }
+    };
+
+    if (isForward) {
+        for (
+            let nextCellIndex = effectiveCell.visibleCell[indexFieldName] + 1;
+            nextCellIndex <= cell.visibleCell[indexFieldName] + effectiveRowSegment.length;
+            nextCellIndex++
+        ) {
+            const nextCell = effectiveRowSegment[nextCellIndex - cell.visibleCell[indexFieldName] - 1];
+            const newCell = calculateDefinition(effectiveCell, nextCell, nextCellIndex);
+            if (newCell) {
+                effectiveCell = newCell;
+            } else {
+                break;
             }
-            return effectiveCell;
-        },
-        cloneDeep(cell)
-    );
+        }
+    } else {
+        for (let nextCellIndex = effectiveCell.visibleCell[indexFieldName] - 1; nextCellIndex >= 0; nextCellIndex--) {
+            const nextCell = effectiveRowSegment[nextCellIndex];
+            const newCell = calculateDefinition(effectiveCell, nextCell, nextCellIndex);
+            if (newCell) {
+                effectiveCell = newCell;
+            } else {
+                break;
+            }
+        }
+    }
+
+    return effectiveCell;
 };
 
 const cellMapToField = (cellMap: CellDefinitionMap, fieldSize: number): Field => {
