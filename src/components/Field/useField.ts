@@ -47,14 +47,7 @@ const arrowKeysSet = new Set([KEY_LEFT, KEY_RIGHT, KEY_UP, KEY_DOWN]);
 export const useField = (fieldSize: number, animationDurationMs: number) => {
     const [moveInProgress, setMoveInProgress] = useState(false);
     const [moveNumber, { inc: incrementMoveNumber, reset: resetMoveNumber }] = useCounter(0);
-    // const [cellMapHistory, setCellMapHistory] = useState<CellDefinitionMap[]>([makeInitialCellMap(fieldSize)]);
-    const [cellMapHistory, setCellMapHistory] = useState<CellDefinitionMap[]>([
-        {
-            1: { id: '1', value: 2, visible: true, merged: false, row: 0, column: 0 },
-            2: { id: '2', value: 2, visible: true, merged: false, row: 0, column: 1 },
-            3: { id: '3', value: 2048, visible: true, merged: false, row: 0, column: 2 }
-        }
-    ]);
+    const [cellMapHistory, setCellMapHistory] = useState<CellDefinitionMap[]>([makeInitialCellMap(fieldSize)]);
 
     const cellMap = cellMapHistory[moveNumber];
     const setCellMap = (newCellMap: CellDefinitionMap) => {
