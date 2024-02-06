@@ -40,8 +40,8 @@ const arrowKeysSet = new Set([KEY_LEFT, KEY_RIGHT, KEY_UP, KEY_DOWN]);
 let id = 17;
 const getNewId = () => id++;
 
-// todo: block moves until animation is finished
-export const useField = (fieldSize: number) => {
+export const useField = (fieldSize: number, animationDurationMs: number) => {
+    const [moveInProgress, setMoveInProgress] = useState(false);
     const [moveNumber, { inc: incrementMoveNumber }] = useCounter(0);
     const [cellMapHistory, setCellMapHistory] = useState<CellDefinitionMap[]>([makeInitialCellMap(fieldSize)]);
 
@@ -54,9 +54,11 @@ export const useField = (fieldSize: number) => {
     useKeyboardEvent(
         true,
         (event) => {
-            if (!arrowKeysSet.has(event.key)) {
+            if (!arrowKeysSet.has(event.key) || moveInProgress) {
                 return;
             }
+
+            setMoveInProgress(true);
 
             const currentCellMap = prepareFieldForMove(cellMap);
             const field = cellMapToField(currentCellMap, fieldSize);
@@ -78,6 +80,10 @@ export const useField = (fieldSize: number) => {
                 default:
                     return;
             }
+
+            setTimeout(() => {
+                setMoveInProgress(false);
+            }, animationDurationMs);
 
             if (!haveEffectiveChanges(newCellMap, currentCellMap)) {
                 console.log('No changes');

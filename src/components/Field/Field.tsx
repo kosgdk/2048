@@ -9,15 +9,17 @@ declare module 'react' {
 }
 
 export const CELLS_PER_ROW = 4;
+const ANIMATION_DURATION_MS = 200;
 
 export const Field = () => {
-    const { idCellMap, onUndo, canUndo } = useField(CELLS_PER_ROW);
+    const { idCellMap, onUndo, canUndo } = useField(CELLS_PER_ROW, ANIMATION_DURATION_MS);
     return (
         <div>
             <div
                 className={styles.field}
                 style={{
-                    '--cells-per-row': CELLS_PER_ROW
+                    '--cells-per-row': CELLS_PER_ROW,
+                    '--animation-duration': `${ANIMATION_DURATION_MS}ms`
                 }}
             >
                 {Array.from({ length: CELLS_PER_ROW ** 2 }).map((_, index) => (

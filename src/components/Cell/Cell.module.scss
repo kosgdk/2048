@@ -1,5 +1,4 @@
 .container {
-    --animation-duration: 0.2s;
     position: absolute;
     top: calc(var(--row) * var(--cell-size) + (var(--row) + 1) * var(--gap));
     left: calc(var(--col) * var(--cell-size) + (var(--col) + 1) * var(--gap));
