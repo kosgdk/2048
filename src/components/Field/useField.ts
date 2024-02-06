@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useCounter, useKeyboardEvent } from '@react-hookz/web';
-import { chain, cloneDeep, isEqual, keys, reduce, reduceRight } from 'lodash-es';
+import { chain, cloneDeep, isEqual, keys, reduce, reduceRight } from 'lodash';
 
 type CellId = string;
 
