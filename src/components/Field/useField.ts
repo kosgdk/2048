@@ -1,8 +1,8 @@
-import { useCallback, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useCounter, useKeyboardEvent } from '@react-hookz/web';
 import { chain, cloneDeep, isEqual, keys, reduce, reduceRight } from 'lodash-es';
 
-type CellId = number;
+type CellId = string;
 
 type CellCoordinates = {
     row: number;
@@ -37,12 +37,11 @@ const KEY_DOWN = 'ArrowDown';
 const arrowKeysSet = new Set([KEY_LEFT, KEY_RIGHT, KEY_UP, KEY_DOWN]);
 
 //todo: move inside hook?
-let id = 17;
-const getNewId = () => id++;
+const getNewId = () => crypto.randomUUID();
 
 export const useField = (fieldSize: number, animationDurationMs: number) => {
     const [moveInProgress, setMoveInProgress] = useState(false);
-    const [moveNumber, { inc: incrementMoveNumber }] = useCounter(0);
+    const [moveNumber, { inc: incrementMoveNumber, reset: resetMoveNumber }] = useCounter(0);
     const [cellMapHistory, setCellMapHistory] = useState<CellDefinitionMap[]>([makeInitialCellMap(fieldSize)]);
 
     const cellMap = cellMapHistory[moveNumber];
@@ -51,10 +50,20 @@ export const useField = (fieldSize: number, animationDurationMs: number) => {
         incrementMoveNumber();
     };
 
+    const isGameOver = useMemo(() => !canMakeEffectiveMove(cellMap, fieldSize), [cellMap, fieldSize]);
+
     useKeyboardEvent(
         true,
         (event) => {
-            if (!arrowKeysSet.has(event.key) || moveInProgress) {
+            if (isGameOver) {
+                onNewGame();
+            }
+
+            if (event.ctrlKey && event.code === 'KeyZ' && canUndo) {
+                onUndo();
+            }
+
+            if (!arrowKeysSet.has(event.code) || moveInProgress || isGameOver) {
                 return;
             }
 
@@ -86,7 +95,6 @@ export const useField = (fieldSize: number, animationDurationMs: number) => {
             }, animationDurationMs);
 
             if (!haveEffectiveChanges(newCellMap, currentCellMap)) {
-                console.log('No changes');
                 return;
             }
 
@@ -97,13 +105,18 @@ export const useField = (fieldSize: number, animationDurationMs: number) => {
         []
     );
 
-    const onUndo = useCallback(() => {
+    const onUndo = () => {
         incrementMoveNumber(-1);
-    }, [incrementMoveNumber]);
+    };
+
+    const onNewGame = () => {
+        setCellMapHistory([makeInitialCellMap(fieldSize)]);
+        resetMoveNumber();
+    };
 
     const canUndo = moveNumber > 0;
 
-    return { idCellMap: cellMap, onUndo, canUndo };
+    return { idCellMap: cellMap, isGameOver };
 };
 
 const haveEffectiveChanges = (newCellMap: CellDefinitionMap, prevCellMap: CellDefinitionMap): boolean => {
@@ -165,7 +178,6 @@ const onMoveHorizontal = (field: Field, isForward: boolean): CellDefinitionMap =
     return fieldToCellMap(effectiveField);
 };
 
-// todo: rewrite in functional way
 const onMoveVertical = (field: Field, isForward: boolean): CellDefinitionMap => {
     const effectiveField = makeEmptyField(field.length);
 
@@ -178,7 +190,6 @@ const onMoveVertical = (field: Field, isForward: boolean): CellDefinitionMap => 
                 false,
                 isForward
             );
-            console.log(newCell);
             effectiveField[newCell.visibleCell.row][column] = newCell;
         }
     };
@@ -216,7 +227,6 @@ const getNewDefinition = (
         nextCell: FieldCell | null,
         nextCellIndex: number
     ): FieldCell | null => {
-        console.log('getNewDefinition', currentCell, nextCell, nextCellIndex);
         if (!nextCell) {
             return {
                 visibleCell: {
@@ -247,7 +257,6 @@ const getNewDefinition = (
                 ]
             };
         } else {
-            console.log('break');
             return null;
         }
     };
@@ -281,6 +290,38 @@ const getNewDefinition = (
     return effectiveCell;
 };
 
+const canMakeEffectiveMove = (cellMap: CellDefinitionMap, fieldSize: number): boolean => {
+    const field = cellMapToField(cellMap, fieldSize);
+
+    for (let row = 0; row < fieldSize; row++) {
+        for (let column = 0; column < fieldSize; column++) {
+            const cell = field[row][column];
+            if (!cell?.visibleCell) {
+                return true;
+            }
+
+            const rightCell = field[row][column + 1];
+            if (
+                (!rightCell?.visibleCell && column < fieldSize - 1) ||
+                cell.visibleCell.value === rightCell?.visibleCell?.value
+            ) {
+                return true;
+            }
+
+            if (row === fieldSize - 1) {
+                continue;
+            }
+
+            const bottomCell = field[row + 1][column];
+            if (!bottomCell?.visibleCell || cell.visibleCell.value === bottomCell.visibleCell.value) {
+                return true;
+            }
+        }
+    }
+
+    return false;
+};
+
 const cellMapToField = (cellMap: CellDefinitionMap, fieldSize: number): Field => {
     const field = makeEmptyField(fieldSize);
     Object.values(cellMap).forEach((cell) => {
@@ -310,7 +351,6 @@ const fieldToCellMap = (field: Field): CellDefinitionMap => {
         },
         {}
     );
-    console.log('fieldToCellMap', field, result);
     return result;
 };
 

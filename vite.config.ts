@@ -18,7 +18,7 @@ export default defineConfig({
     server: {
         port: 3000,
         host: 'localhost',
-        https: false
+        https: true
     },
     build: {
         target: 'esnext'
